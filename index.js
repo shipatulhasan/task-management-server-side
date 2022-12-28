@@ -1,51 +1,101 @@
-const express = require('express')
-const cors = require('cors')
-const app = express()
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require('dotenv').config()
-const port = process.env.PORT || 5000
+const express = require("express");
+const cors = require("cors");
+const app = express();
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
+const jwt = require('jsonwebtoken');
+const port = process.env.PORT || 5000;
 
 // middleware
 
-app.use(cors())
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
-app.get('/',(req,res)=>{
-    res.send('Bubu from node')
-})
+app.get("/", (req, res) => {
+  res.send("Bubu from node");
+});
 
+const client = new MongoClient(process.env.uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
 
-const client = new MongoClient(process.env.uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+const run = async () => {
+  try {
+    const tasksCollection = client.db("taskManager").collection("tasks");
+    const usersCollection = client.db("taskManager").collection("users");
 
-const run = async()=>{
-    try{
-        const tasksCollection = client.db("taskManager").collection("tasks");
-        
-        // apis
-        
-        app.get('/task',async(req,res)=>{
-            const result = await tasksCollection.find({}).toArray()
-            res.send(result)
-        })
-        app.post('/task',async(req,res)=>{
-            const task = req.body
-            const result = await tasksCollection.insertOne(task)
-            res.send(result)
-        })
-        app.delete('/task/:id',async(req,res)=>{
-            const id = req.params.id
-            const find = {_id:ObjectId(id)} 
-            const result = await tasksCollection.deleteOne(find)
-            res.send({result,id})
-        })
+    // apis
 
-    }
-    finally{}
-}
-run().catch(console.dir)
+    // users
 
+    app.post("/user",async(req,res)=>{
+      const user = req.body
+      const result = await usersCollection.insertOne(user)
+      res.send(result)
+    })
 
+    app.get('/jwt',async(req,res)=>{
+      const email = req.query.email
+      const filter = {email:email}
+      const user = await usersCollection.findOne(filter)
+      if(user){
+        const token = jwt.sign(user,process.env.ACCESS_TOKEN,{expiresIn:'1d'})
+        return res.send({token})
+      }
+      return res.status(401).send({token:''})
+    })
 
-app.listen(port,()=>{
-    console.log(`listing from ${port}`)
-})
+    // tasks
+
+    app.get("/task/:email", async (req, res) => {
+      const email = req.params.email
+      const filter = {email:email}
+      const result = await tasksCollection.find(filter).toArray();
+      console.log(result)
+      setTimeout(() => {
+        res.send(result);
+      }, 500);
+    });
+    app.post("/task", async (req, res) => {
+      const task = req.body;
+      const result = await tasksCollection.insertOne(task);
+      setTimeout(() => {
+        res.send(result);
+      }, 500);
+    });
+    app.put("/task/:id", async (req, res) => {
+      const id = req.params.id;
+      const post = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: post,
+      };
+      const result = await tasksCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      console.log(result)
+      setTimeout(() => {
+        res.send({ result, id });
+      }, 200);
+    });
+    app.delete("/task/:id", async (req, res) => {
+      const id = req.params.id;
+      const find = { _id: ObjectId(id) };
+      const result = await tasksCollection.deleteOne(find);
+      setTimeout(() => {
+        res.send({ result, id });
+      }, 200);
+    });
+  } finally {
+  }
+};
+run().catch(console.dir);
+
+app.listen(port, () => {
+  console.log(`listing from ${port}`);
+});
