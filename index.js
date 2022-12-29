@@ -44,7 +44,7 @@ const run = async () => {
         const token = jwt.sign(user,process.env.ACCESS_TOKEN,{expiresIn:'1d'})
         return res.send({token})
       }
-      return res.status(401).send({token:''})
+  res.status(401).send({token:''})
     })
 
     // tasks
@@ -53,13 +53,14 @@ const run = async () => {
       const email = req.params.email
       const filter = {email:email}
       const result = await tasksCollection.find(filter).toArray();
-      console.log(result)
+
       setTimeout(() => {
         res.send(result);
-      }, 500);
+      }, 200);
     });
     app.post("/task", async (req, res) => {
       const task = req.body;
+
       const result = await tasksCollection.insertOne(task);
       setTimeout(() => {
         res.send(result);
@@ -78,7 +79,6 @@ const run = async () => {
         updateDoc,
         options
       );
-      console.log(result)
       setTimeout(() => {
         res.send({ result, id });
       }, 200);
