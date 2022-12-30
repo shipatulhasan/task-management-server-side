@@ -24,6 +24,7 @@ const client = new MongoClient(process.env.uri, {
 const run = async () => {
   try {
     const tasksCollection = client.db("taskManager").collection("tasks");
+    const commentsCollection = client.db("taskManager").collection("comments");
     const usersCollection = client.db("taskManager").collection("users");
 
     // apis
@@ -52,11 +53,10 @@ const run = async () => {
     app.get("/task/:email", async (req, res) => {
       const email = req.params.email
       const filter = {email:email}
-      const result = await tasksCollection.find(filter).toArray();
+      const result = await tasksCollection.find(filter).sort({_id:-1}).toArray();
 
-      setTimeout(() => {
-        res.send(result);
-      }, 200);
+      res.send(result);
+      
     });
     app.post("/task", async (req, res) => {
       const task = req.body;
@@ -64,8 +64,9 @@ const run = async () => {
       const result = await tasksCollection.insertOne(task);
       setTimeout(() => {
         res.send(result);
-      }, 500);
+      }, 200);
     });
+ 
     app.put("/task/:id", async (req, res) => {
       const id = req.params.id;
       const post = req.body;
@@ -79,18 +80,40 @@ const run = async () => {
         updateDoc,
         options
       );
-      setTimeout(() => {
-        res.send({ result, id });
-      }, 200);
+      res.send({ result, id });
+      
     });
     app.delete("/task/:id", async (req, res) => {
       const id = req.params.id;
       const find = { _id: ObjectId(id) };
       const result = await tasksCollection.deleteOne(find);
+      res.send({ result, id });
+    
+    });
+
+    // comments
+    app.get("/comment/:id", async (req, res) => {
+      const task = req.params.id
+  
+      const filter = {task:task}
+      
+      const result = await commentsCollection.find(filter).sort({_id:-1}).toArray();
+
+
+      res.send(result);
+      
+    });
+    app.post("/comment", async (req, res) => {
+      const comment = req.body;
+
+      const result = await commentsCollection.insertOne(comment);
       setTimeout(() => {
-        res.send({ result, id });
+        res.send(result);
       }, 200);
     });
+
+
+
   } finally {
   }
 };
