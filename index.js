@@ -56,6 +56,7 @@ const run = async () => {
       const result = await tasksCollection.find(filter).sort({_id:-1}).toArray();
 
       res.send(result);
+     
       
     });
     app.post("/task", async (req, res) => {
@@ -80,12 +81,18 @@ const run = async () => {
         updateDoc,
         options
       );
-      res.send({ result, id });
+
+      const updatedTask = await tasksCollection.findOne({_id:ObjectId(id)})
+      setTimeout(() => {
+        res.send({ result, updatedTask});
+      }, 200);
       
     });
     app.delete("/task/:id", async (req, res) => {
       const id = req.params.id;
+      const filter = {task:id}
       const find = { _id: ObjectId(id) };
+      const comments = await commentsCollection.deleteMany(filter)
       const result = await tasksCollection.deleteOne(find);
       res.send({ result, id });
     
@@ -105,7 +112,6 @@ const run = async () => {
     });
     app.post("/comment", async (req, res) => {
       const comment = req.body;
-
       const result = await commentsCollection.insertOne(comment);
       setTimeout(() => {
         res.send(result);
